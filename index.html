@@ -331,6 +331,36 @@ function playSound(type) {
 }
 
 // =====================================================
+// 영어 발음 읽어주기 (브라우저 내장 음성 TTS)
+// =====================================================
+let enVoice = null;
+function pickEnVoice() {
+  if (!('speechSynthesis' in window)) return;
+  const voices = speechSynthesis.getVoices();
+  // 영어(가능하면 미국) 음성 우선 선택
+  enVoice = voices.find(v => /en[-_]US/i.test(v.lang) && /female|samantha|google/i.test(v.name))
+         || voices.find(v => /en[-_]US/i.test(v.lang))
+         || voices.find(v => /^en/i.test(v.lang))
+         || null;
+}
+if ('speechSynthesis' in window) {
+  pickEnVoice();
+  speechSynthesis.onvoiceschanged = pickEnVoice;
+}
+function speakEn(text) {
+  if (!('speechSynthesis' in window) || !text) return;
+  try {
+    speechSynthesis.cancel();
+    const u = new SpeechSynthesisUtterance(text);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    u.pitch = 1.0;
+    if (enVoice) u.voice = enVoice;
+    speechSynthesis.speak(u);
+  } catch (e) {}
+}
+
+// =====================================================
 // 게임 변수
 // =====================================================
 let money = 0, hearts = 5, maxHearts = 5, level = 1, combo = 0, maxCombo = 0, servedCount = 0, roundServed = 0;
@@ -453,9 +483,11 @@ function showCustomer() {
   currentMode = Math.random() < 0.5 ? 'en2ko' : 'ko2en';
   bubble.classList.remove('hidden');
   if (currentMode === 'en2ko') {
-    bubble.innerHTML = `<span style="font-size:12px;color:#E65100">🇬🇧 영단어</span><br><b>${currentWord.en}</b>`;
+    const enEsc = currentWord.en.replace(/'/g,"&#39;");
+    bubble.innerHTML = `<span style="font-size:12px;color:#E65100">🇬🇧 영단어</span><br><b>${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${enEsc}')" style="border:none;background:none;font-size:22px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button>`;
     const options = shuffle([currentWord.ko, ...shuffle(vocab.filter(v=>v.ko!==currentWord.ko)).slice(0,3).map(v=>v.ko)]);
     ansArea.innerHTML = options.map(opt => `<button class="ans-btn" onclick="handleAnswer('${opt.replace(/'/g,"&#39;")}', this)">${opt}</button>`).join('');
+    speakEn(currentWord.en); // 영단어를 보여줄 때 발음 읽어주기
   } else {
     bubble.innerHTML = `<span style="font-size:12px;color:#0D47A1">🇰🇷 뜻</span><br><b>${currentWord.ko}</b>`;
     const options = shuffle([currentWord.en, ...shuffle(vocab.filter(v=>v.en!==currentWord.en)).slice(0,3).map(v=>v.en)]);
@@ -537,18 +569,19 @@ function showResultPopup(res, earned) {
   } else if(res === true) {
     document.getElementById('popupIcon').textContent = isVIP ? '🤑' : '🎉';
     t.textContent = isVIP ? 'VIP 팁 폭발!' : '나이스!';
-    d.innerHTML = `<b style="color:#1976D2">${currentWord.en}</b> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    d.innerHTML = `<b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/'/g,"&#39;")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
     m.textContent = `+${earned.toLocaleString()}원`;
     b.textContent = '다음 손님 →';
     b.onclick = () => { playSound('click'); closePopup(); };
   } else {
     document.getElementById('popupIcon').textContent = res==='timeout'?'⏰':'😤';
     t.textContent = res==='timeout'?'시간 초과!':'틀렸어요!';
-    d.innerHTML = `정답: <b style="color:#1976D2">${currentWord.en}</b> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    d.innerHTML = `정답: <b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/'/g,"&#39;")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
     m.textContent = hearts<=0 ? '장사 종료!' : `남은 하트: ${hearts}`;
     b.textContent = hearts<=0 ? '결과 보기' : '다음 손님 →';
     b.onclick = () => { playSound('click'); closePopup(); };
   }
+  if (res !== 'gameover') speakEn(currentWord.en); // 정답 확인 시 영어 발음 읽어주기
   p.classList.add('active');
 }
 
