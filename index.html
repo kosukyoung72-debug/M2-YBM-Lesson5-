@@ -344,7 +344,7 @@ let enVoice = null;
 function pickEnVoice() {
   if (!('speechSynthesis' in window)) return;
   const voices = speechSynthesis.getVoices();
-  enVoice = voices.find(v => /en[-_]US/i.test(v.lang) && /female|samantha|google|natural/i.test(v.name))
+  enVoice = voices.find(v => /en[-_]US/i.test(v.lang) && /google|natural|samantha|female/i.test(v.name))
          || voices.find(v => /en[-_]US/i.test(v.lang))
          || voices.find(v => /^en/i.test(v.lang))
          || null;
@@ -353,18 +353,44 @@ if ('speechSynthesis' in window) {
   pickEnVoice();
   speechSynthesis.onvoiceschanged = pickEnVoice;
 }
-function nativeSpeak(text) {
-  if (!('speechSynthesis' in window) || !text) return;
+function hasEngVoice() {
+  try { return speechSynthesis.getVoices().some(v => /^en/i.test(v.lang)); }
+  catch (e) { return false; }
+}
+// 첫 사용자 터치에서 호출: 음성 목록 로딩 + iOS/안드로이드 음성 잠금 해제
+function warmUpVoice() {
+  if (!('speechSynthesis' in window)) return;
   try {
-    speechSynthesis.cancel();
+    pickEnVoice();
+    const u = new SpeechSynthesisUtterance(' ');
+    u.volume = 0; speechSynthesis.speak(u);
+  } catch (e) {}
+}
+function nativeSpeak(text) {
+  if (!('speechSynthesis' in window)) return false;
+  try {
+    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
     u.lang = 'en-US'; u.rate = 0.9; u.pitch = 1.0;
     if (enVoice) u.voice = enVoice;
-    speechSynthesis.speak(u);
-  } catch (e) {}
+    // cancel 직후 speak 시 소리가 안 나는 안드로이드 크롬 버그 회피: 살짝 지연
+    setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) {} }, 40);
+    return true;
+  } catch (e) { return false; }
 }
 
 let ttsAudio = (typeof Audio !== 'undefined') ? new Audio() : null;
+function playEmbedded(text) {
+  if (!ttsAudio || typeof AUDIO === 'undefined' || !AUDIO[text]) return false;
+  try {
+    ttsAudio.pause();
+    ttsAudio.onerror = () => onlineSpeak(text);
+    ttsAudio.src = AUDIO[text];
+    const p = ttsAudio.play();
+    if (p && p.catch) p.catch(() => onlineSpeak(text));
+    return true;
+  } catch (e) { return false; }
+}
 function ttsUrl(src, text) {
   const q = encodeURIComponent(text);
   if (src === 'google') return 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=en&q=' + q;
@@ -372,11 +398,11 @@ function ttsUrl(src, text) {
   return '';
 }
 function onlineSpeak(text) {
-  if (!ttsAudio) { nativeSpeak(text); return; }
+  if (!ttsAudio) return;
   const sources = ['google', 'se'];
   let stage = 0;
   const tryNext = () => {
-    if (stage >= sources.length) { nativeSpeak(text); return; }
+    if (stage >= sources.length) return;
     const s = sources[stage++];
     try {
       ttsAudio.pause();
@@ -388,19 +414,13 @@ function onlineSpeak(text) {
   };
   tryNext();
 }
-// 발음 재생: 내장 오디오가 있으면 그걸 재생, 없으면 온라인/내장음성으로 폴백
+// 발음 우선순위: 1) 기기 내장 자연 목소리  2) 게임 내장 발음(오프라인)  3) 온라인
 function speakEn(text) {
   if (!text) return;
-  if (ttsAudio && typeof AUDIO !== 'undefined' && AUDIO[text]) {
-    try {
-      ttsAudio.pause();
-      ttsAudio.onerror = () => onlineSpeak(text);
-      ttsAudio.src = AUDIO[text];
-      const p = ttsAudio.play();
-      if (p && p.catch) p.catch(() => onlineSpeak(text));
-      return;
-    } catch (e) { /* fall through */ }
+  if ('speechSynthesis' in window && hasEngVoice()) {
+    if (nativeSpeak(text)) return;
   }
+  if (playEmbedded(text)) return;
   onlineSpeak(text);
 }
 
@@ -504,6 +524,7 @@ function checkMission(success) {
 
 function startGame() {
   playSound('click');
+  warmUpVoice();
   money = 0; hearts = maxHearts; level = 1; combo = 0; maxCombo = 0; servedCount = 0; roundServed = 0;
   ownedUpgrades.clear(); encounteredWords.clear(); updateShopVisuals(); wordQueue = shuffle(vocab); activeMission = null;
   document.getElementById('missionBanner').classList.remove('show');
@@ -527,15 +548,15 @@ function showCustomer() {
   currentMode = Math.random() < 0.5 ? 'en2ko' : 'ko2en';
   bubble.classList.remove('hidden');
   if (currentMode === 'en2ko') {
-    const enEsc = currentWord.en.replace(/'/g,"&#39;");
+    const enEsc = currentWord.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
     bubble.innerHTML = `<span style="font-size:12px;color:#E65100">🇬🇧 영단어</span><br><b>${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${enEsc}')" style="border:none;background:none;font-size:22px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button>`;
     const options = shuffle([currentWord.ko, ...shuffle(vocab.filter(v=>v.ko!==currentWord.ko)).slice(0,3).map(v=>v.ko)]);
-    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" onclick="handleAnswer('${opt.replace(/'/g,"&#39;")}', this)">${opt}</button>`).join('');
+    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" onclick="handleAnswer('${opt.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this)">${opt}</button>`).join('');
     speakEn(currentWord.en); // 영단어를 보여줄 때 발음 읽어주기
   } else {
     bubble.innerHTML = `<span style="font-size:12px;color:#0D47A1">🇰🇷 뜻</span><br><b>${currentWord.ko}</b>`;
     const options = shuffle([currentWord.en, ...shuffle(vocab.filter(v=>v.en!==currentWord.en)).slice(0,3).map(v=>v.en)]);
-    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" style="font-size:${opt.length>15?'14px':'17px'}" onclick="handleAnswer('${opt.replace(/'/g,"&#39;")}', this)">${opt}</button>`).join('');
+    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" style="font-size:${opt.length>15?'14px':'17px'}" onclick="handleAnswer('${opt.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this)">${opt}</button>`).join('');
   }
   answering = true; startTimer();
 }
@@ -613,14 +634,14 @@ function showResultPopup(res, earned) {
   } else if(res === true) {
     document.getElementById('popupIcon').textContent = isVIP ? '🤑' : '🎉';
     t.textContent = isVIP ? 'VIP 팁 폭발!' : '나이스!';
-    d.innerHTML = `<b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/'/g,"&#39;")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    d.innerHTML = `<b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
     m.textContent = `+${earned.toLocaleString()}원`;
     b.textContent = '다음 손님 →';
     b.onclick = () => { playSound('click'); closePopup(); };
   } else {
     document.getElementById('popupIcon').textContent = res==='timeout'?'⏰':'😤';
     t.textContent = res==='timeout'?'시간 초과!':'틀렸어요!';
-    d.innerHTML = `정답: <b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/'/g,"&#39;")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    d.innerHTML = `정답: <b style="color:#1976D2">${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${currentWord.en.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}')" style="border:none;background:none;font-size:20px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
     m.textContent = hearts<=0 ? '장사 종료!' : `남은 하트: ${hearts}`;
     b.textContent = hearts<=0 ? '결과 보기' : '다음 손님 →';
     b.onclick = () => { playSound('click'); closePopup(); };
