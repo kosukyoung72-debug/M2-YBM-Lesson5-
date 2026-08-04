@@ -369,12 +369,12 @@ function warmUpVoice() {
 function nativeSpeak(text) {
   if (!('speechSynthesis' in window)) return false;
   try {
-    if (speechSynthesis.speaking || speechSynthesis.pending) speechSynthesis.cancel();
+    window.speechSynthesis.cancel();
     const u = new SpeechSynthesisUtterance(text);
-    u.lang = 'en-US'; u.rate = 0.9; u.pitch = 1.0;
-    if (enVoice) u.voice = enVoice;
-    // cancel 직후 speak 시 소리가 안 나는 안드로이드 크롬 버그 회피: 살짝 지연
-    setTimeout(() => { try { speechSynthesis.speak(u); } catch (e) {} }, 40);
+    u.lang = 'en-US';
+    u.rate = 0.9;
+    // 기기 기본 en-US 목소리를 그대로 사용 (특정 voice 지정하지 않음)
+    window.speechSynthesis.speak(u);
     return true;
   } catch (e) { return false; }
 }
@@ -417,9 +417,9 @@ function onlineSpeak(text) {
 // 발음 우선순위: 1) 기기 내장 자연 목소리  2) 게임 내장 발음(오프라인)  3) 온라인
 function speakEn(text) {
   if (!text) return;
-  if ('speechSynthesis' in window && hasEngVoice()) {
-    if (nativeSpeak(text)) return;
-  }
+  // 1) 기기 내장 음성을 바로 사용 (참고 게임과 동일한 방식)
+  if ('speechSynthesis' in window) { if (nativeSpeak(text)) return; }
+  // 2) speechSynthesis 자체가 없는 기기에서만 내장 발음/온라인으로 폴백
   if (playEmbedded(text)) return;
   onlineSpeak(text);
 }
@@ -552,7 +552,7 @@ function showCustomer() {
     bubble.innerHTML = `<span style="font-size:12px;color:#E65100">🇬🇧 영단어</span><br><b>${currentWord.en}</b> <button onclick="event.stopPropagation();speakEn('${enEsc}')" style="border:none;background:none;font-size:22px;cursor:pointer;vertical-align:middle;padding:0 2px;line-height:1;">🔊</button>`;
     const options = shuffle([currentWord.ko, ...shuffle(vocab.filter(v=>v.ko!==currentWord.ko)).slice(0,3).map(v=>v.ko)]);
     ansArea.innerHTML = options.map(opt => `<button class="ans-btn" onclick="handleAnswer('${opt.replace(/\\/g,'\\\\').replace(/'/g,"\\'")}', this)">${opt}</button>`).join('');
-    speakEn(currentWord.en); // 영단어를 보여줄 때 발음 읽어주기
+    setTimeout(() => speakEn(currentWord.en), 400); // 영단어를 보여줄 때 발음 읽어주기
   } else {
     bubble.innerHTML = `<span style="font-size:12px;color:#0D47A1">🇰🇷 뜻</span><br><b>${currentWord.ko}</b>`;
     const options = shuffle([currentWord.en, ...shuffle(vocab.filter(v=>v.en!==currentWord.en)).slice(0,3).map(v=>v.en)]);
@@ -646,7 +646,7 @@ function showResultPopup(res, earned) {
     b.textContent = hearts<=0 ? '결과 보기' : '다음 손님 →';
     b.onclick = () => { playSound('click'); closePopup(); };
   }
-  if (res !== 'gameover') speakEn(currentWord.en); // 정답 확인 시 영어 발음 읽어주기
+  if (res !== 'gameover') setTimeout(() => speakEn(currentWord.en), 300); // 정답 확인 시 영어 발음 읽어주기
   p.classList.add('active');
 }
 
