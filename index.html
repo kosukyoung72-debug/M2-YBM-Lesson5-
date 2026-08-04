@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<title>🐟 전설의 붕어빵 타이쿤 - 중2 YBM(김은형) Lesson 5</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Jua&family=Fredoka+One&display=swap');
+:root {
+  --orange: #FF6B35; --deep: #C94A1D; --brown: #4A3B32; --cream: #FFFDF7; --sky: #A3D8F4; --coin: #FDD835;
+}
+* { box-sizing: border-box; margin: 0; padding: 0; touch-action: manipulation; user-select: none; font-family: 'Jua', sans-serif; }
+body { background: #FFF3E0; min-height: 100vh; overflow: hidden; }
+.screen { display: none; position: fixed; inset: 0; flex-direction: column; align-items: center; }
+.screen.active { display: flex; }
+#titleScreen { background: radial-gradient(circle at top, #FF8A65 0%, #FF6B35 60%, #D84315 100%); justify-content: center; }
+.title-sign { background: var(--cream); border: 6px solid var(--brown); border-radius: 24px; padding: 24px 36px; text-align: center; box-shadow: 0 12px 0 var(--brown); margin-bottom: 20px; animation: float-sign 3s infinite; }
+@keyframes float-sign { 0%, 100% { transform: translateY(0) rotate(-1deg); } 50% { transform: translateY(-8px) rotate(1deg); } }
+.btn-start { background: var(--coin); color: var(--brown); border: 4px solid var(--brown); border-radius: 50px; padding: 16px 56px; font-size: 24px; cursor: pointer; box-shadow: 0 6px 0 var(--brown); transition: 0.1s; margin-top: 20px; }
+.btn-start:active { transform: translateY(6px); box-shadow: 0 0px 0 var(--brown); }
+#endingScreen { background: linear-gradient(180deg, #FFD54F 0%, #FF8F00 100%); justify-content: flex-start; text-align: center; padding: 20px; z-index: 500; overflow-y: auto; }
+.ending-title { font-size: 40px; color: var(--deep); text-shadow: 2px 2px 0 #FFF; margin-bottom: 10px; }
+.ending-desc { font-size: 18px; color: var(--brown); background: rgba(255,255,255,0.8); padding: 15px; border-radius: 20px; line-height: 1.5; border: 4px solid var(--brown); width: 100%; max-width: 400px; }
+.hud { width: 100%; max-width: 480px; background: var(--brown); padding: 10px 20px; display: flex; align-items: center; justify-content: space-between; z-index: 20; position: relative; }
+.hud-money { font-size: 22px; color: var(--coin); text-shadow: 1px 1px 0 #000; }
+.hud-hearts { font-size: 20px; letter-spacing: 2px; }
+.mission-banner { position: absolute; top: 60px; left: 50%; transform: translateX(-50%) translateY(-100px); background: #1565C0; color: white; padding: 8px 20px; border-radius: 30px; font-size: 16px; font-weight: bold; border: 3px solid #0D47A1; transition: 0.3s; z-index: 15; box-shadow: 0 4px 0 #0D47A1; white-space: nowrap; }
+.mission-banner.show { transform: translateX(-50%) translateY(0); }
+.combo-display { position: absolute; top: 55px; left: 50%; transform: translateX(-50%) scale(0); color: #FFEB3B; font-size: 30px; font-family: 'Fredoka One', sans-serif; text-shadow: 3px 3px 0 #D84315; transition: 0.2s; z-index: 20; }
+.combo-display.active { transform: translateX(-50%) scale(1); animation: pulse-combo 0.4s infinite alternate; }
+@keyframes pulse-combo { to { transform: translateX(-50%) scale(1.1); } }
+.fever-overlay { position: absolute; inset: 0; background: linear-gradient(45deg, rgba(255,0,0,0.2), rgba(255,255,0,0.2)); z-index: 12; opacity: 0; pointer-events: none; transition: 0.3s; }
+.fever-overlay.active { opacity: 1; animation: fever-flash 0.5s infinite alternate; }
+@keyframes fever-flash { from { opacity: 0.5; } to { opacity: 1; filter: hue-rotate(90deg); } }
+.shop-wrap { width: 100%; max-width: 480px; flex-shrink: 0; position: relative; overflow: hidden; background: var(--sky); transition: 1s; }
+.shop-wrap.sunset { background: #FFCC80; }
+.shop-wrap.night { background: #1A237E; }
+.shop-wrap.rain::after { content: '🌧️🌧️🌧️🌧️🌧️'; position: absolute; top: 0; font-size: 40px; animation: rain-fall 0.5s linear infinite; opacity: 0.5; z-index: 11; letter-spacing: 20px; }
+@keyframes rain-fall { from { transform: translateY(-50px) rotate(10deg); } to { transform: translateY(300px) rotate(10deg); } }
+.sky-area { height: 70px; position: relative; }
+.cloud { position: absolute; font-size: 30px; animation: drift linear infinite; opacity: 0.9; }
+@keyframes drift { from{left:-60px} to{left:110%} }
+.shop-scene { height: 260px; position: relative; border-bottom: 6px solid var(--brown); }
+.shop-bg { position: absolute; inset: 0; background: linear-gradient(180deg, #FFCCBC 0%, #FFAB91 100%); transition: 0.5s; }
+.shop-floor { position: absolute; bottom: 0; left: 0; right: 0; height: 50px; background: linear-gradient(180deg, #8D6E63, #5D4037); border-top: 4px solid var(--brown); transition: 0.5s; }
+.shop-counter { position: absolute; bottom: 45px; left: 50%; transform: translateX(-50%); width: 200px; height: 65px; background: linear-gradient(180deg, #BCAAA4, #8D6E63); border-radius: 12px 12px 0 0; border: 4px solid var(--brown); border-bottom: none; z-index: 5; transition: 0.5s; }
+.shop-awning { position: absolute; top: 0; left: 0; right: 0; height: 35px; z-index: 8; transition: 0.5s; }
+#shopUpgradesContainer { position: absolute; inset: 0; pointer-events: none; z-index: 6; }
+.dynamic-upg { position: absolute; animation: pop-in 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+@keyframes pop-in { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+.shop-owner { position: absolute; bottom: 55px; left: 50%; transform: translateX(-50%); font-size: 46px; z-index: 7; transition: 0.2s; }
+.shop-owner.serve { transform: translateX(calc(-50% + 20px)) scale(1.1); }
+.customer-lane { position: absolute; bottom: 45px; right: 15px; display: flex; flex-direction: column; align-items: center; z-index: 9; }
+.customer-emoji { font-size: 54px; filter: drop-shadow(0 4px 0 rgba(0,0,0,0.2)); }
+.customer-emoji.idle { animation: idle-bob 1s infinite alternate; }
+.customer-emoji.correct { animation: jump-happy 0.5s; }
+.customer-emoji.wrong { animation: shake-mad 0.4s; }
+@keyframes idle-bob { to { transform: translateY(-8px); } }
+@keyframes jump-happy { 40% { transform: translateY(-25px) scale(1.1); } }
+@keyframes shake-mad { 25% { transform: translateX(-10px); } 75% { transform: translateX(10px); } }
+.speech-bubble { position: absolute; bottom: 105px; right: 10px; background: white; border: 4px solid var(--brown); border-radius: 20px; padding: 10px 14px; font-size: 16px; max-width: 240px; text-align: center; box-shadow: 4px 4px 0 rgba(0,0,0,0.15); z-index: 10; animation: float-bubble 2s infinite alternate; }
+@keyframes float-bubble { to { transform: translateY(-5px); } }
+.speech-bubble::after { content: ''; position: absolute; bottom: -12px; right: 30px; border: 8px solid transparent; border-top-color: var(--brown); }
+.timer-wrap { width: 100%; max-width: 480px; height: 16px; background: #E0E0E0; flex-shrink: 0; }
+.timer-fill { height: 100%; background: linear-gradient(90deg, #4CAF50, #FFC107, #F44336); transition: 0.1s linear; }
+.fever-timer { background: linear-gradient(90deg, #E040FB, #FFEB3B, #00E5FF) !important; }
+.answer-area { width: 100%; max-width: 480px; flex: 1; padding: 16px; display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-content: start; background: #F5F5F5; }
+.ans-btn { background: white; border: 4px solid var(--brown); border-radius: 20px; padding: 16px 8px; font-size: 17px; cursor: pointer; box-shadow: 0 6px 0 var(--brown); transition: 0.05s; word-break: keep-all; }
+.ans-btn:active { transform: translateY(6px); box-shadow: 0 0px 0 var(--brown); }
+.ans-btn.correct { background: #C8E6C9; border-color: #2E7D32; box-shadow: 0 6px 0 #2E7D32; color: #1B5E20; }
+.ans-btn.wrong { background: #FFCDD2; border-color: #C62828; box-shadow: 0 6px 0 #C62828; color: #B71C1C; }
+#upgradeScreen { background: #F5F5F5; overflow: hidden; }
+.upg-header { background: var(--brown); width: 100%; max-width: 480px; text-align: center; padding: 16px; color: white; flex-shrink: 0; border-bottom: 4px solid #2D241D; }
+.upg-scroll-area { width: 100%; max-width: 480px; flex: 1; overflow-y: auto; padding: 16px; }
+.upg-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding-bottom: 20px; }
+.upg-card { background: white; border: 3px solid var(--brown); border-radius: 16px; padding: 12px; text-align: center; display: flex; flex-direction: column; justify-content: space-between; box-shadow: 0 4px 0 rgba(0,0,0,0.1); }
+.upg-buy-btn { background: var(--coin); border: 2px solid var(--brown); border-radius: 20px; padding: 8px; font-size: 14px; cursor: pointer; box-shadow: 0 3px 0 var(--brown); font-weight: bold; margin-top: 8px; }
+.upg-buy-btn.owned { background: #81C784; border-color: #388E3C; box-shadow: 0 3px 0 #388E3C; color: white; }
+.upg-footer { width: 100%; max-width: 480px; padding: 12px; background: white; border-top: 3px solid #E0E0E0; text-align: center; }
+.popup-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.6); display: flex; align-items: center; justify-content: center; z-index: 100; opacity: 0; pointer-events: none; transition: 0.2s; backdrop-filter: blur(2px); }
+.popup-overlay.active { opacity: 1; pointer-events: all; }
+.popup-box { background: var(--cream); border: 6px solid var(--brown); border-radius: 24px; padding: 24px; text-align: center; max-width: 320px; width: 90%; transform: scale(0.8); transition: 0.3s; box-shadow: 0 10px 0 var(--brown); }
+.popup-overlay.active .popup-box { transform: scale(1); }
+.popup-btn { background: var(--coin); border: 4px solid var(--brown); border-radius: 30px; padding: 12px 0; font-size: 20px; cursor: pointer; width: 100%; box-shadow: 0 4px 0 var(--brown); margin-top: 10px; }
+.coin-fly { position: fixed; font-size: 24px; pointer-events: none; z-index: 200; animation: coin-up 0.7s forwards; }
+@keyframes coin-up { 0%{transform:translateY(0); opacity:1} 100%{transform:translateY(-80px); opacity:0} }
+.word-review-box { max-height: 150px; overflow-y: auto; background: #FFF; border: 2px solid var(--brown); border-radius: 10px; padding: 10px; text-align: left; font-size: 14px; line-height: 1.5; margin-bottom: 10px; }
+.word-review-item { border-bottom: 1px dashed #ccc; padding: 4px 0; }
+.word-review-item:last-child { border-bottom: none; }
+</style>
+</head>
+<body>
+<div class="screen active" id="titleScreen">
+  <div class="title-sign"><div style="font-size:36px; color:var(--deep); text-shadow:2px 2px 0 #FFCCBC;">🐟 바빠요 바빠!<br>붕어빵 가게</div></div>
+  <div style="font-size:80px; animation:float-sign 2s infinite;">🏪</div>
+  <div style="background:rgba(255,255,255,0.9); padding:16px; border-radius:16px; text-align:center; max-width:300px; border:3px solid var(--brown); margin-top:10px; line-height:1.5;">
+    <b>📚 중2 YBM(김은형) Lesson 5</b><br>
+    단어 <b style="color:#C94A1D;">69개</b>로 장사 시작!<br>
+    하트 5개로 여유롭게 시작하세요.<br>
+    <b style="color:#C94A1D;">전설의 마스터</b>가 되어보세요!
+  </div>
+  <button class="btn-start" onclick="startGame()">장사 시작!</button>
+</div>
+<div class="screen" id="gameScreen">
+  <div class="hud">
+    <div class="hud-money">🪙 <span id="moneyDisplay">0</span></div>
+    <div class="hud-hearts" id="heartsDisplay">❤️❤️❤️❤️❤️</div>
+  </div>
+  <div class="mission-banner" id="missionBanner">미션: 3연속 정답! (0/3)</div>
+  <div class="combo-display" id="comboDisplay">FEVER!</div>
+  <div class="shop-wrap" id="shopWrap">
+    <div class="sky-area"><span class="cloud" style="left:-20px; animation-duration:15s;">☁️</span><span class="cloud" style="left:50%; font-size:20px; animation-duration:25s;">☁️</span></div>
+    <div class="shop-scene">
+      <div class="shop-bg" id="shopBg"></div>
+      <div class="shop-awning" id="shopAwning"></div>
+      <div class="shop-floor" id="shopFloor"></div>
+      <div id="shopUpgradesContainer"></div>
+      <div class="shop-counter" id="shopCounter"></div>
+      <div class="shop-owner" id="shopOwner">👩‍🍳</div>
+      <div class="customer-lane" id="customerLane" style="display:none"><div class="customer-emoji idle" id="customerEmoji">👧</div></div>
+      <div class="speech-bubble hidden" id="speechBubble">word</div>
+      <div class="fever-overlay" id="feverOverlay"></div>
+    </div>
+  </div>
+  <div class="timer-wrap"><div class="timer-fill" id="timerFill"></div></div>
+  <div style="width:100%; max-width:480px; background:var(--cream); text-align:center; padding:8px; font-weight:bold; border-bottom:2px solid #ccc;">⬇️ 알맞은 뜻을 고르세요!</div>
+  <div class="answer-area" id="answerArea"></div>
+</div>
+<div class="screen" id="upgradeScreen">
+  <div class="upg-header">
+    <h2 style="color:var(--coin); text-shadow:2px 2px 0 #000;">🏪 인테리어 상점</h2>
+    <div style="font-size:20px; margin-top:8px;">💰 <span id="upgMoneyDisplay">0</span></div>
+    <div style="font-size:15px; color:#FFCDD2; font-weight:bold; margin-top:8px;" id="upgHeartHeal">☕ 휴식으로 하트 1개 회복!</div>
+  </div>
+  <div class="upg-scroll-area"><div class="upg-grid" id="upgGrid"></div></div>
+  <div class="upg-footer"><button class="btn-start" style="width:100%; margin:0; padding:12px;" onclick="continueGame()">🔥 장사 계속하기</button></div>
+</div>
+<div class="screen" id="endingScreen">
+  <div style="font-size:80px; filter:drop-shadow(0 10px 0 rgba(0,0,0,0.2)); animation:float-sign 2s infinite; margin-top:20px;">🏆</div>
+  <div class="ending-title">축하합니다!</div>
+  <div class="ending-desc">
+    모든 인테리어를 완성했습니다.<br>당신은 이제 단순한 사장님이 아닌,<br>
+    <b style="color:#D32F2F; font-size:22px;">'36년 전통 2대째 이어가는<br>전설의 붕어빵 마스터'</b> 입니다! 🎉
+  </div>
+  <div style="margin-top:20px; font-weight:bold; color:var(--brown); font-size:20px;">📖 오늘 복습할 단어장 (총 <span id="endingWordCount">0</span>단어)</div>
+  <div id="endingWordReview" class="word-review-box" style="width:100%; max-width:400px; margin-top:10px;"></div>
+  <button class="btn-start" style="margin-bottom:40px;" onclick="location.reload()">처음부터 다시하기</button>
+</div>
+<div class="popup-overlay" id="resultPopup">
+  <div class="popup-box">
+    <span style="font-size:60px;" id="popupIcon">🎉</span>
+    <h2 style="color:var(--deep); margin:10px 0;" id="popupTitle">정답!</h2>
+    <div style="background:rgba(0,0,0,0.05); padding:10px; border-radius:10px; margin-bottom:15px; font-size:16px;" id="popupDesc"></div>
+    <div style="font-size:24px; color:#FF6B35; font-weight:bold;" id="popupMoney"></div>
+    <button class="popup-btn" id="popupBtn" onclick="closePopup()">다음 손님 →</button>
+  </div>
+</div>
+<script>
+// =====================================================
+// 단어장 데이터 (vocab-game-creator 스킬이 교체하는 부분)
+// =====================================================
+const vocab = [
+  {en: "account", ko: "계정, 계좌"},
+  {en: "down", ko: "우울한"},
+  {en: "host", ko: "진행자, 주최자"},
+  {en: "matter", ko: "문제, 일"},
+  {en: "terrible", ko: "끔찍한, 심한"},
+  {en: "upset", ko: "속상한, 언짢은"},
+  {en: "be into", ko: "~에 빠져 있다"},
+  {en: "be mad at", ko: "~에게 몹시 화가 나다"},
+  {en: "hurt one's feelings", ko: "~의 마음을 상하게 하다"},
+  {en: "in front of", ko: "~의 앞에"},
+  {en: "mean to", ko: "~할 의도이다"},
+  {en: "on one's mind", ko: "~의 마음속에"},
+  {en: "social media account", ko: "소셜 미디어 계정"},
+  {en: "something else", ko: "다른 것"},
+  {en: "blame", ko: "비난하다, 탓하다"},
+  {en: "common", ko: "흔한, 보통의"},
+  {en: "damage", ko: "손상을 주다; 손상"},
+  {en: "develop", ko: "발전시키다, 개발하다"},
+  {en: "easily", ko: "쉽게"},
+  {en: "effort", ko: "노력, 수고"},
+  {en: "emotion", ko: "감정"},
+  {en: "encourage", ko: "격려하다"},
+  {en: "explore", ko: "살펴보다, 탐구하다"},
+  {en: "face", ko: "마주하다, 직면하다"},
+  {en: "fault", ko: "잘못, 책임"},
+  {en: "friendship", ko: "우정"},
+  {en: "growth", ko: "성장"},
+  {en: "improve", ko: "향상시키다, 개선하다"},
+  {en: "influence", ko: "영향을 주다; 영향"},
+  {en: "jealous", ko: "질투하는, 부러워하는"},
+  {en: "negative", ko: "부정적인"},
+  {en: "opinion", ko: "의견, 견해"},
+  {en: "perform", ko: "수행하다"},
+  {en: "positively", ko: "긍정적으로"},
+  {en: "relationship", ko: "관계"},
+  {en: "respect", ko: "존중하다; 존중"},
+  {en: "shape", ko: "형성하다; 모양"},
+  {en: "skill", ko: "실력, 기술"},
+  {en: "support", ko: "지지, 지원; 지지하다"},
+  {en: "thought", ko: "생각"},
+  {en: "understand", ko: "이해하다"},
+  {en: "because of", ko: "~ 때문에"},
+  {en: "cheer up", ko: "힘내게 하다, 기운을 북돋우다"},
+  {en: "focus on", ko: "~에 집중하다"},
+  {en: "get along", ko: "잘 지내다, 잘 어울리다"},
+  {en: "go wrong", ko: "잘못되다, 문제가 생기다"},
+  {en: "in the end", ko: "결국, 결과적으로"},
+  {en: "mess up", ko: "망치다, 엉망으로 만들다"},
+  {en: "win first place", ko: "1등을 하다"},
+  {en: "awesome", ko: "굉장한, 기막히게 좋은"},
+  {en: "challenge", ko: "도전, 어려움; 도전하다"},
+  {en: "count", ko: "(숫자를) 세다"},
+  {en: "courage", ko: "용기"},
+  {en: "mean", ko: "못된, 심술궂은"},
+  {en: "overcome", ko: "극복하다, 이겨내다"},
+  {en: "pimple", ko: "여드름"},
+  {en: "rude", ko: "무례한"},
+  {en: "strength", ko: "장점, 강점; 힘"},
+  {en: "thoughtless", ko: "배려심 없는, 무심한"},
+  {en: "appear in", ko: "~에 나타나다"},
+  {en: "believe in", ko: "~을 믿다"},
+  {en: "be proud of", ko: "~을 자랑스러워하다"},
+  {en: "by mistake", ko: "실수로"},
+  {en: "cool down", ko: "진정하다, 식히다"},
+  {en: "count on", ko: "~에 의지하다, ~을 믿다"},
+  {en: "give up", ko: "포기하다"},
+  {en: "instead of", ko: "~ 대신에"},
+  {en: "once upon a time", ko: "옛날에"},
+  {en: "reach out to", ko: "~에게 연락하다"}
+];
+
+// =====================================================
+// 인테리어 업그레이드 아이템 (30종)
+// =====================================================
+const upgrades = [
+  { id:"tipjar", name:"팁통", emoji:"🫙", price:100, type:"prop", css:"bottom:45px; left:10px; font-size:20px; z-index:8;" },
+  { id:"menu", name:"메뉴판", emoji:"📋", price:200, type:"prop", css:"top:40px; right:10px; font-size:24px;" },
+  { id:"fan", name:"선풍기", emoji:"🌀", price:300, type:"prop", css:"bottom:50px; right:30px; font-size:22px; z-index:4;" },
+  { id:"radio", name:"라디오", emoji:"📻", price:400, type:"prop", css:"bottom:45px; left:40px; font-size:22px; z-index:8;" },
+  { id:"lights", name:"감성 전구", emoji:"💡", price:500, type:"prop", css:"top:5px; left:10px; font-size:24px; letter-spacing:15px; text-shadow: 0 0 10px yellow;" },
+  { id:"sign", name:"간판", emoji:"🎏", price:600, type:"prop", css:"top:5px; left:50%; transform:translateX(-50%); font-size:30px;" },
+  { id:"trash", name:"쓰레기통", emoji:"🗑️", price:700, type:"prop", css:"bottom:5px; left:80px; font-size:24px;" },
+  { id:"flower", name:"화분", emoji:"🪴", price:800, type:"prop", css:"bottom:5px; right:80px; font-size:28px;" },
+  { id:"wall1", name:"핑크 벽지", emoji:"🌸", price:1000, type:"bg", style:"linear-gradient(180deg, #F8BBD0, #FCE4EC)" },
+  { id:"floor1", name:"체크 타일", emoji:"🏁", price:1200, type:"floor", style:"repeating-conic-gradient(#8D6E63 0% 25%, #795548 0% 25% 50%) 50% / 20px 20px" },
+  { id:"awning1", name:"빨간 어닝", emoji:"⛺", price:1500, type:"awning", style:"repeating-linear-gradient(90deg, #D32F2F 0 20px, #FFF 20px 40px)", shadow:"0 4px 6px rgba(0,0,0,0.3)" },
+  { id:"heater", name:"난로", emoji:"♨️", price:1800, type:"prop", css:"bottom:5px; left:15px; font-size:32px;" },
+  { id:"cat", name:"고양이", emoji:"🐱", price:2000, type:"prop", css:"bottom:5px; right:20px; font-size:28px; z-index:6;" },
+  { id:"cctv", name:"CCTV", emoji:"📹", price:2500, type:"prop", css:"top:10px; right:15px; font-size:22px;" },
+  { id:"hat", name:"사장님 모자", emoji:"🧢", price:3000, type:"prop", css:"bottom:75px; left:50%; transform:translateX(-50%); font-size:24px; z-index:8;" },
+  { id:"counter1", name:"원목 카운터", emoji:"🪵", price:3500, type:"counter", style:"linear-gradient(180deg, #5D4037, #3E2723)", border:"4px solid #1c100b" },
+  { id:"goldfish", name:"황금 붕어", emoji:"🐡", price:4000, type:"prop", css:"bottom:45px; left:50%; transform:translateX(55px); font-size:22px; z-index:8;" },
+  { id:"golf", name:"골프백", emoji:"⛳", price:4500, type:"prop", css:"bottom:5px; left:50px; font-size:36px;" },
+  { id:"tree", name:"벚꽃나무", emoji:"🌸", price:5000, type:"prop", css:"top:30px; left:-10px; font-size:50px; opacity:0.8;" },
+  { id:"ac", name:"에어컨", emoji:"❄️", price:6000, type:"prop", css:"top:45px; left:80px; font-size:26px;" },
+  { id:"airfryer", name:"스팀 프라이어", emoji:"🎛️", price:7000, type:"prop", css:"bottom:45px; right:60px; font-size:26px; z-index:6;" },
+  { id:"mirrorball", name:"미러볼", emoji:"🪩", price:8000, type:"prop", css:"top:10px; right:50px; font-size:32px; animation:spin-y 2s linear infinite;" },
+  { id:"arcade", name:"오락기", emoji:"🕹️", price:9000, type:"prop", css:"bottom:5px; left:120px; font-size:34px;" },
+  { id:"charm", name:"떡상 부적", emoji:"📈", price:10000, type:"prop", css:"top:40px; left:20px; font-size:30px;" },
+  { id:"toad", name:"황금 두꺼비", emoji:"🐸", price:12000, type:"prop", css:"bottom:45px; left:80px; font-size:20px; z-index:8;" },
+  { id:"box", name:"포장박스", emoji:"🎁", price:15000, type:"prop", css:"bottom:45px; right:90px; font-size:20px; z-index:8;" },
+  { id:"cattower", name:"캣타워", emoji:"🐾", price:18000, type:"prop", css:"top:50px; right:70px; font-size:34px;" },
+  { id:"parttimer", name:"알바생", emoji:"🧑‍🍳", price:22000, type:"prop", css:"bottom:45px; right:10px; font-size:40px; z-index:4;" },
+  { id:"tesla", name:"전기차", emoji:"🚗", price:30000, type:"prop", css:"bottom:5px; right:50px; font-size:44px; transform:scaleX(-1);" },
+  { id:"pot", name:"2대째 뚝배기", emoji:"🍲", price:50000, type:"prop", css:"bottom:5px; left:50%; transform:translateX(-50%); font-size:40px; z-index:9;" }
+];
+
+// =====================================================
+// 효과음 (AudioContext)
+// =====================================================
+let audioCtx = null;
+function playSound(type) {
+  if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const osc = audioCtx.createOscillator();
+  const gainNode = audioCtx.createGain();
+  osc.connect(gainNode);
+  gainNode.connect(audioCtx.destination);
+  const now = audioCtx.currentTime;
+  if (type === 'click') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(600, now);
+    osc.frequency.exponentialRampToValueAtTime(800, now + 0.05);
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+    osc.start(now); osc.stop(now + 0.05);
+  } else if (type === 'correct') {
+    osc.type = 'sine';
+    osc.frequency.setValueAtTime(880, now);
+    osc.frequency.setValueAtTime(1108, now + 0.08);
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'wrong') {
+    osc.type = 'sawtooth';
+    osc.frequency.setValueAtTime(150, now);
+    gainNode.gain.setValueAtTime(0.2, now);
+    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.2);
+    osc.start(now); osc.stop(now + 0.2);
+  } else if (type === 'coin') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(1200, now);
+    osc.frequency.setValueAtTime(1600, now + 0.05);
+    osc.frequency.setValueAtTime(2000, now + 0.1);
+    gainNode.gain.setValueAtTime(0.1, now);
+    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.15);
+    osc.start(now); osc.stop(now + 0.15);
+  } else if (type === 'buy') {
+    osc.type = 'square';
+    osc.frequency.setValueAtTime(440, now);
+    osc.frequency.setValueAtTime(660, now + 0.1);
+    gainNode.gain.setValueAtTime(0.1, now);
+    gainNode.gain.linearRampToValueAtTime(0.01, now + 0.3);
+    osc.start(now); osc.stop(now + 0.3);
+  }
+}
+
+// =====================================================
+// 게임 변수
+// =====================================================
+let money = 0, hearts = 5, maxHearts = 5, level = 1, combo = 0, maxCombo = 0, servedCount = 0, roundServed = 0;
+let ownedUpgrades = new Set(), wordQueue = [];
+let encounteredWords = new Set();
+let currentWord = null, currentMode = 'en2ko', isVIP = false;
+let timerInterval = null, answering = false, isFever = false;
+let activeMission = null;
+const NORM_EMOJI = ["👧","👦","👩","👨","🧑","👱‍♀️"];
+const VIP_EMOJI = ["🤵", "👽", "🤑"];
+
+function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function showScreen(id) { document.querySelectorAll('.screen').forEach(s => s.classList.remove('active')); document.getElementById(id).classList.add('active'); }
+
+function updateHUD() {
+  document.getElementById('moneyDisplay').textContent = money.toLocaleString();
+  document.getElementById('heartsDisplay').textContent = '❤️'.repeat(hearts);
+  const cd = document.getElementById('comboDisplay');
+  if (combo >= 7 && !isFever) {
+    isFever = true; cd.textContent = "🔥 FEVER TIME! 🔥"; cd.classList.add('active');
+    document.getElementById('feverOverlay').classList.add('active');
+    document.getElementById('timerFill').classList.add('fever-timer');
+    playSound('coin');
+    setTimeout(() => {
+      isFever = false; cd.classList.remove('active');
+      document.getElementById('feverOverlay').classList.remove('active');
+      document.getElementById('timerFill').classList.remove('fever-timer');
+    }, 10000);
+  } else if (combo >= 2 && !isFever) {
+    cd.textContent = `${combo} COMBO!`; cd.classList.add('active');
+    setTimeout(() => cd.classList.remove('active'), 400);
+  } else if (combo < 2 && !isFever) {
+    cd.classList.remove('active');
+  }
+  const wrap = document.getElementById('shopWrap');
+  wrap.className = 'shop-wrap';
+  if(level >= 3 && level < 5) wrap.classList.add('sunset');
+  else if(level >= 5 && level < 7) wrap.classList.add('night');
+  else if(level >= 7) { wrap.classList.add('night'); wrap.classList.add('rain'); }
+}
+
+function updateShopVisuals() {
+  const container = document.getElementById('shopUpgradesContainer');
+  container.innerHTML = '';
+  document.getElementById('shopBg').style.background = '';
+  document.getElementById('shopFloor').style.background = '';
+  document.getElementById('shopAwning').style.background = '';
+  document.getElementById('shopAwning').style.boxShadow = '';
+  document.getElementById('shopCounter').style.background = '';
+  document.getElementById('shopCounter').style.border = '4px solid var(--brown)';
+  ownedUpgrades.forEach(id => {
+    const u = upgrades.find(x => x.id === id);
+    if(!u) return;
+    if(u.type === 'prop') {
+      const el = document.createElement('div'); el.className = 'dynamic-upg'; el.textContent = u.emoji; el.style.cssText = u.css; container.appendChild(el);
+    } else if (u.type === 'bg') document.getElementById('shopBg').style.background = u.style;
+    else if (u.type === 'floor') document.getElementById('shopFloor').style.background = u.style;
+    else if (u.type === 'awning') { document.getElementById('shopAwning').style.background = u.style; document.getElementById('shopAwning').style.boxShadow = u.shadow; }
+    else if (u.type === 'counter') { document.getElementById('shopCounter').style.background = u.style; document.getElementById('shopCounter').style.border = u.border; }
+  });
+  if(ownedUpgrades.size === upgrades.length) {
+    setTimeout(() => {
+      document.getElementById('endingWordCount').textContent = encounteredWords.size;
+      document.getElementById('endingWordReview').innerHTML = getWordReviewHTML();
+      playSound('correct');
+      showScreen('endingScreen');
+    }, 1500);
+  }
+}
+
+function checkMission(success) {
+  const banner = document.getElementById('missionBanner');
+  if(!activeMission) {
+    if(Math.random() < 0.15) {
+      activeMission = { target: 3, progress: 0, reward: level * 1000 };
+      banner.textContent = `🚨 미션: 3연속 정답! (0/3) 보상: ${activeMission.reward}원`;
+      banner.classList.add('show');
+    }
+    return;
+  }
+  if(success) {
+    activeMission.progress++;
+    banner.textContent = `🚨 미션: 3연속 정답! (${activeMission.progress}/3) 보상: ${activeMission.reward}원`;
+    if(activeMission.progress >= activeMission.target) {
+      money += activeMission.reward;
+      playSound('coin');
+      banner.textContent = `🎉 미션 성공! +${activeMission.reward}원`;
+      banner.style.background = '#388E3C'; banner.style.borderColor = '#1B5E20';
+      setTimeout(() => { banner.classList.remove('show'); activeMission = null; banner.style.background = '#1565C0'; banner.style.borderColor = '#0D47A1'; }, 2000);
+    }
+  } else {
+    banner.textContent = `💥 미션 실패!`;
+    banner.style.background = '#C62828'; banner.style.borderColor = '#B71C1C';
+    setTimeout(() => { banner.classList.remove('show'); activeMission = null; banner.style.background = '#1565C0'; banner.style.borderColor = '#0D47A1'; }, 1500);
+  }
+}
+
+function startGame() {
+  playSound('click');
+  money = 0; hearts = maxHearts; level = 1; combo = 0; maxCombo = 0; servedCount = 0; roundServed = 0;
+  ownedUpgrades.clear(); encounteredWords.clear(); updateShopVisuals(); wordQueue = shuffle(vocab); activeMission = null;
+  document.getElementById('missionBanner').classList.remove('show');
+  showScreen('gameScreen'); updateHUD(); nextCustomer();
+}
+
+function nextCustomer() {
+  if (hearts <= 0) { showResultPopup('gameover', 0); return; }
+  if (wordQueue.length === 0) wordQueue = shuffle(vocab);
+  if (roundServed >= 6) { roundServed = 0; level++; showUpgradeScreen(); return; }
+  currentWord = wordQueue.pop();
+  encounteredWords.add(currentWord);
+  isVIP = Math.random() < 0.15;
+  showCustomer();
+}
+
+function showCustomer() {
+  const lane = document.getElementById('customerLane'), emoji = document.getElementById('customerEmoji'), bubble = document.getElementById('speechBubble'), ansArea = document.getElementById('answerArea');
+  lane.style.display = 'flex'; emoji.className = 'customer-emoji idle';
+  emoji.textContent = isVIP ? VIP_EMOJI[Math.floor(Math.random()*VIP_EMOJI.length)] : NORM_EMOJI[Math.floor(Math.random()*NORM_EMOJI.length)];
+  currentMode = Math.random() < 0.5 ? 'en2ko' : 'ko2en';
+  bubble.classList.remove('hidden');
+  if (currentMode === 'en2ko') {
+    bubble.innerHTML = `<span style="font-size:12px;color:#E65100">🇬🇧 영단어</span><br><b>${currentWord.en}</b>`;
+    const options = shuffle([currentWord.ko, ...shuffle(vocab.filter(v=>v.ko!==currentWord.ko)).slice(0,3).map(v=>v.ko)]);
+    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" onclick="handleAnswer('${opt.replace(/'/g,"&#39;")}', this)">${opt}</button>`).join('');
+  } else {
+    bubble.innerHTML = `<span style="font-size:12px;color:#0D47A1">🇰🇷 뜻</span><br><b>${currentWord.ko}</b>`;
+    const options = shuffle([currentWord.en, ...shuffle(vocab.filter(v=>v.en!==currentWord.en)).slice(0,3).map(v=>v.en)]);
+    ansArea.innerHTML = options.map(opt => `<button class="ans-btn" style="font-size:${opt.length>15?'14px':'17px'}" onclick="handleAnswer('${opt.replace(/'/g,"&#39;")}', this)">${opt}</button>`).join('');
+  }
+  answering = true; startTimer();
+}
+
+function startTimer() {
+  const baseTime = isVIP ? 5000 : Math.max(4500, 10000 - (level*300));
+  const duration = baseTime * (level >= 7 ? 0.9 : 1);
+  const start = Date.now();
+  clearInterval(timerInterval);
+  timerInterval = setInterval(() => {
+    if(isFever) { document.getElementById('timerFill').style.width = '100%'; return; }
+    const pct = Math.max(0, 100 - ((Date.now() - start) / duration * 100));
+    document.getElementById('timerFill').style.width = pct + '%';
+    if (pct <= 0 && answering) { clearInterval(timerInterval); timeOut(); }
+  }, 30);
+}
+
+function handleAnswer(selected, btn) {
+  if (!answering) return;
+  answering = false; clearInterval(timerInterval);
+  document.querySelectorAll('.ans-btn').forEach(b => b.disabled = true);
+  const correct = currentMode === 'en2ko' ? currentWord.ko : currentWord.en;
+  if (selected === correct) {
+    playSound('correct');
+    combo++; if(combo > maxCombo) maxCombo = combo;
+    btn.classList.add('correct'); servedCount++; roundServed++;
+    let base = 80 + (level * 20);
+    if(isVIP) base *= 5;
+    if(isFever) base *= 3;
+    const earned = Math.floor(base * (1 + (combo * 0.1)));
+    money += earned;
+    document.getElementById('customerEmoji').classList.replace('idle', 'correct');
+    document.getElementById('shopOwner').classList.add('serve');
+    setTimeout(() => document.getElementById('shopOwner').classList.remove('serve'), 300);
+    for(let i=0; i<(isVIP?8:4); i++) {
+      setTimeout(() => {
+        const c = document.createElement('div'); c.className = 'coin-fly'; c.textContent = isVIP?'💵':'🪙';
+        c.style.left = (btn.getBoundingClientRect().left + Math.random()*100) + 'px'; c.style.top = btn.getBoundingClientRect().top + 'px';
+        document.body.appendChild(c); setTimeout(() => c.remove(), 700);
+      }, i*50);
+    }
+    checkMission(true); updateHUD(); showResultPopup(true, earned);
+  } else {
+    playSound('wrong');
+    combo = 0; btn.classList.add('wrong');
+    document.querySelectorAll('.ans-btn').forEach(b => { if(b.textContent===correct) b.classList.add('correct'); });
+    hearts--; checkMission(false); updateHUD();
+    document.getElementById('customerEmoji').classList.replace('idle', 'wrong');
+    showResultPopup(false, 0);
+  }
+}
+
+function timeOut() {
+  if (!answering) return;
+  answering = false; combo = 0; hearts--; checkMission(false); updateHUD();
+  playSound('wrong');
+  document.getElementById('customerEmoji').classList.replace('idle', 'wrong');
+  showResultPopup('timeout', 0);
+}
+
+function getWordReviewHTML() {
+  const words = Array.from(encounteredWords);
+  if(words.length === 0) return '학습한 단어가 없습니다.';
+  return words.map(w => `<div class="word-review-item">🇬🇧 <b style="color:#1976D2">${w.en}</b> = 🇰🇷 <b style="color:#D32F2F">${w.ko}</b></div>`).join('');
+}
+
+function showResultPopup(res, earned) {
+  const p = document.getElementById('resultPopup'), t = document.getElementById('popupTitle'), d = document.getElementById('popupDesc'), m = document.getElementById('popupMoney'), b = document.getElementById('popupBtn');
+  if(res === 'gameover') {
+    playSound('wrong');
+    document.getElementById('popupIcon').textContent = '🐟'; t.textContent = '장사 종료!';
+    d.innerHTML = `오늘 번 돈: <b>${money.toLocaleString()}원</b><br>서빙: ${servedCount}명 / 최대콤보: ${maxCombo}<br><br><div style="font-weight:bold; margin-bottom:5px;">📖 오늘 복습할 단어장 (총 ${encounteredWords.size}단어)</div><div class="word-review-box">${getWordReviewHTML()}</div>`;
+    m.textContent = ''; b.textContent = '처음으로';
+    b.onclick = () => { playSound('click'); location.reload(); };
+  } else if(res === true) {
+    document.getElementById('popupIcon').textContent = isVIP ? '🤑' : '🎉';
+    t.textContent = isVIP ? 'VIP 팁 폭발!' : '나이스!';
+    d.innerHTML = `<b style="color:#1976D2">${currentWord.en}</b> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    m.textContent = `+${earned.toLocaleString()}원`;
+    b.textContent = '다음 손님 →';
+    b.onclick = () => { playSound('click'); closePopup(); };
+  } else {
+    document.getElementById('popupIcon').textContent = res==='timeout'?'⏰':'😤';
+    t.textContent = res==='timeout'?'시간 초과!':'틀렸어요!';
+    d.innerHTML = `정답: <b style="color:#1976D2">${currentWord.en}</b> = <b style="color:#D32F2F">${currentWord.ko}</b>`;
+    m.textContent = hearts<=0 ? '장사 종료!' : `남은 하트: ${hearts}`;
+    b.textContent = hearts<=0 ? '결과 보기' : '다음 손님 →';
+    b.onclick = () => { playSound('click'); closePopup(); };
+  }
+  p.classList.add('active');
+}
+
+function closePopup() {
+  document.getElementById('resultPopup').classList.remove('active');
+  document.getElementById('customerLane').style.display = 'none'; document.getElementById('speechBubble').classList.add('hidden');
+  if (hearts <= 0) showResultPopup('gameover', 0); else setTimeout(nextCustomer, 200);
+}
+
+function showUpgradeScreen() {
+  playSound('coin');
+  const healText = document.getElementById('upgHeartHeal');
+  if (hearts < maxHearts) { hearts++; healText.style.display = 'block'; } else { healText.style.display = 'none'; }
+  updateHUD();
+  document.getElementById('upgMoneyDisplay').textContent = money.toLocaleString();
+  const grid = document.getElementById('upgGrid'); grid.innerHTML = '';
+  upgrades.forEach(u => {
+    const owned = ownedUpgrades.has(u.id);
+    grid.innerHTML += `<div class="upg-card"><span style="font-size:36px;">${u.emoji}</span><div style="font-weight:bold; margin:4px 0;">${u.name}</div><div style="color:var(--orange); font-weight:bold;">${owned ? '✅' : `💰 ${u.price.toLocaleString()}`}</div><button class="upg-buy-btn ${owned?'owned':''}" ${owned?'disabled':''} onclick="buyUpg('${u.id}', ${u.price}, this)">${owned?'설치됨':'구매'}</button></div>`;
+  });
+  showScreen('upgradeScreen');
+}
+
+function buyUpg(id, price, btn) {
+  if (money < price || ownedUpgrades.has(id)) {
+    playSound('wrong');
+    btn.parentElement.style.animation = 'shake-mad 0.3s'; setTimeout(()=>btn.parentElement.style.animation='', 300); return;
+  }
+  playSound('buy');
+  money -= price; ownedUpgrades.add(id);
+  document.getElementById('upgMoneyDisplay').textContent = money.toLocaleString();
+  btn.textContent = '설치됨'; btn.className = 'upg-buy-btn owned'; btn.disabled = true; btn.previousElementSibling.textContent = '✅';
+  updateShopVisuals();
+}
+
+function continueGame() { playSound('click'); showScreen('gameScreen'); nextCustomer(); }
+</script>
+</body>
+</html>
