@@ -3,6 +3,9 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+<meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+<meta http-equiv="Pragma" content="no-cache">
+<meta http-equiv="Expires" content="0">
 <title>🐟 전설의 붕어빵 타이쿤 - 중2 YBM(김은형) Lesson 5</title>
 <meta name="description" content="중2 YBM(김은형) Lesson 5 'Better Words, Better Worlds' 핵심 영단어 69개를 붕어빵 타이쿤 게임으로 학습하세요!">
 <!-- 링크 미리보기 (Open Graph / 카카오톡·SNS) -->
@@ -414,13 +417,13 @@ function onlineSpeak(text) {
   };
   tryNext();
 }
-// 발음 우선순위: 1) 기기 내장 자연 목소리  2) 게임 내장 발음(오프라인)  3) 온라인
+// 발음 우선순위: 1) 게임 내장 발음(오프라인, 카톡 인앱브라우저 호환)  2) 기기 내장 음성  3) 온라인
 function speakEn(text) {
   if (!text) return;
-  // 1) 기기 내장 음성을 바로 사용 (참고 게임과 동일한 방식)
-  if ('speechSynthesis' in window) { if (nativeSpeak(text)) return; }
-  // 2) speechSynthesis 자체가 없는 기기에서만 내장 발음/온라인으로 폴백
+  // 1) 게임에 내장된 발음 오디오를 최우선 재생 (카카오톡 인앱 브라우저에서도 동작)
   if (playEmbedded(text)) return;
+  // 2) 내장 오디오가 없는 단어만 기기 음성으로 폴백
+  if ('speechSynthesis' in window) { if (nativeSpeak(text)) return; }
   onlineSpeak(text);
 }
 
@@ -522,9 +525,25 @@ function checkMission(success) {
   }
 }
 
+// 첫 터치(장사 시작) 제스처에서 내장 오디오 재생 잠금 해제 (iOS/모바일 필수)
+function unlockEmbeddedAudio() {
+  if (!ttsAudio || typeof AUDIO === 'undefined') return;
+  try {
+    const firstKey = Object.keys(AUDIO)[0];
+    if (!firstKey) return;
+    ttsAudio.muted = true;
+    ttsAudio.src = AUDIO[firstKey];
+    const p = ttsAudio.play();
+    const done = () => { try { ttsAudio.pause(); ttsAudio.currentTime = 0; ttsAudio.muted = false; } catch (e) {} };
+    if (p && p.then) p.then(done).catch(() => { try { ttsAudio.muted = false; } catch (e) {} });
+    else done();
+  } catch (e) { try { ttsAudio.muted = false; } catch (e2) {} }
+}
+
 function startGame() {
   playSound('click');
   warmUpVoice();
+  unlockEmbeddedAudio();
   money = 0; hearts = maxHearts; level = 1; combo = 0; maxCombo = 0; servedCount = 0; roundServed = 0;
   ownedUpgrades.clear(); encounteredWords.clear(); updateShopVisuals(); wordQueue = shuffle(vocab); activeMission = null;
   document.getElementById('missionBanner').classList.remove('show');
